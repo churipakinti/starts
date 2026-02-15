@@ -97,7 +97,7 @@
         /* Mobile: taller canvas = easier tapping */
         @media (max-width: 600px) {
             canvas {
-                aspect-ratio: 4 / 5;
+                aspect-ratio: 3 / 4;
             }
         }
 
@@ -231,10 +231,10 @@
         const closeBtn = document.getElementById("close");
 
         // ===== Settings
-        const SEQ_POINTS = 20;            // unique points
+        const SEQ_POINTS = 16;            // unique points
         const TOTAL_TAPS = SEQ_POINTS + 1; // close by tapping first again
         const DECOY_COUNT = 60;
-        const STAR_R = 15;                 // S2
+        const STAR_R = 20;                 // S2
         const HIT_R = 30;
         const WRONG_STEP_BACK = 1;        // P1
         const TWINKLE_COUNT = 100;
@@ -286,6 +286,8 @@
             const pts = [];
             const w = canvas.width, h = canvas.height;
             const margin = 28;
+            const MIN_STAR_DIST = STAR_R * 2.6; // súbelo a 3.0 si aún se juntan
+
 
             function farEnough(x, y) {
                 for (const s of seq) {
