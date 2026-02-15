@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Constelación</title>
+
+    <link rel="icon" href="data:image/svg+xml,
+  <svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22>
+    <text y=%22.9em%22 font-size=%2290%22>✨</text>
+  </svg>">
+
+    <style>
+        :root {
+            --ink: #eaf0ff;
+            --muted: #cbb4c4;
+            --border: rgba(255, 255, 255, 0.14);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 18px;
+            color: var(--ink);
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans";
+            background: radial-gradient(1200px 700px at 30% 20%, #5a1437 0%, #1a0b1f 45%, #05040a 100%);
+        }
+
+        .wrap {
+            width: min(920px, 100%);
+            display: grid;
+            gap: 14px;
+        }
+
+        .card {
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+            border-radius: 18px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+            padding: 16px;
+        }
+
+        .top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 16px;
+            letter-spacing: 0.3px;
+            font-weight: 700;
+        }
+
+        .sub {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+            max-width: 70ch;
+        }
+
+        .pill {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(0, 0, 0, 0.18);
+            color: var(--muted);
+            font-size: 12px;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        canvas {
+            width: 100%;
+            max-width: 760px;
+            aspect-ratio: 16 / 10;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.16);
+            display: block;
+            touch-action: none;
+            margin: auto;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+        }
+
+        button {
+            appearance: none;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(0, 0, 0, 0.18);
+            color: var(--ink);
+            padding: 10px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 650;
+            letter-spacing: 0.2px;
+        }
+
+        button:hover {
+            border-color: rgba(255, 190, 220, 0.65);
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 12px;
+            margin: 0;
+            line-height: 1.35;
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            place-items: center;
+            padding: 18px;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 10;
+        }
+
+        .modal {
+            width: min(560px, 100%);
+            border-radius: 18px;
+            padding: 18px 18px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.05));
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+        }
+
+        .modal .big {
+            font-size: 22px;
+            margin: 0;
+            letter-spacing: 0.2px;
+        }
+
+        .modal .small {
+            margin: 12px 0 0;
+            color: var(--muted);
+            line-height: 1.45;
+            font-size: 14px;
+        }
+
+        .modal .actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="card top">
+        <div>
+            <h1>Constelación</h1>
+            <p class="sub">
+                Encuentra el patrón. Toca las estrellas correctas.<br>
+                Al final, vuelve a tocar la <b>primera</b> estrella para cerrarlo.
+            </p>
+        </div>
+        <div class="pill">Progreso: <span id="prog">0</span>/<span id="total">16</span></div>
+    </div>
+
+    <div class="card">
+        <canvas id="cv" width="800" height="500" aria-label="Constelación"></canvas>
+        <div class="row">
+            <button id="reset">Reiniciar</button>
+            <p class="hint" id="hint"></p>
+        </div>
+    </div>
+</div>
+
+<div class="overlay" id="overlay" role="dialog" aria-modal="true">
+    <div class="modal">
+        <p class="big" id="line1">Lo encontraste. Entre puntos sueltos apareció una forma. Así pasa contigo. Me importas. Y no es poca cosa.</p>
+        <p class="big" id="line2" style="display:none;">¡Te quiero Ana Burneo!💖</p>
+        <div class="actions">
+            <button id="close">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const canvas = document.getElementById("cv");
+        const ctx = canvas.getContext("2d");
+        const progEl = document.getElementById("prog");
+        const totalEl = document.getElementById("total");
+        const hintEl = document.getElementById("hint");
+        const overlay = document.getElementById("overlay");
+        const closeBtn = document.getElementById("close");
+
+        // ===== Settings
+        const SEQ_POINTS = 20;            // unique points
+        const TOTAL_TAPS = SEQ_POINTS + 1; // close by tapping first again
+        const DECOY_COUNT = 60;
+        const STAR_R = 9;                 // S2
+        const HIT_R = 18;
+        const WRONG_STEP_BACK = 1;        // P1
+        const TWINKLE_COUNT = 70;
+
+        totalEl.textContent = String(TOTAL_TAPS);
+
+        const rand = (a, b) => a + Math.random() * (b - a);
+        const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+        const dist2 = (ax, ay, bx, by) => (ax - bx) ** 2 + (ay - by) ** 2;
+
+        function heartPoint(t) {
+            const x = 16 * Math.sin(t) ** 3;
+            const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+            return {x: x / 18, y: -y / 18};
+        }
+
+        function buildSequence() {
+            const pts = [];
+            const margin = 70;
+            const w = canvas.width, h = canvas.height;
+            const scale = Math.min(w, h) * 0.34;
+            const cx = w * 0.50, cy = h * 0.50;
+
+            for (let i = 0; i < SEQ_POINTS; i++) {
+                const t = (i / SEQ_POINTS) * Math.PI * 2;
+                const p = heartPoint(t);
+                pts.push({
+                    x: clamp(cx + p.x * scale + rand(-10, 10), margin, w - margin),
+                    y: clamp(cy + p.y * scale + rand(-10, 10), margin, h - margin),
+                    kind: "seq",
+                    i
+                });
+            }
+
+            // rotate starting point so it isn't obvious
+            const shift = Math.floor(rand(2, SEQ_POINTS - 2));
+            const ordered = [];
+            for (let k = 0; k < SEQ_POINTS; k++) {
+                const s = pts[(k + shift) % SEQ_POINTS];
+                ordered.push(s);
+            }
+
+            // re-index to 0..SEQ_POINTS-1 in the new order
+            for (let i = 0; i < ordered.length; i++) ordered[i].i = i;
+            return ordered;
+        }
+
+        function buildDecoys(seq) {
+            const pts = [];
+            const w = canvas.width, h = canvas.height;
+            const margin = 28;
+
+            function farEnough(x, y) {
+                for (const s of seq) {
+                    if (dist2(x, y, s.x, s.y) < (HIT_R * HIT_R * 1.6)) return false;
+                }
+                return true;
+            }
+
+            let tries = 0;
+            while (pts.length < DECOY_COUNT && tries < 12000) {
+                tries++;
+                const x = rand(margin, w - margin);
+                const y = rand(margin, h - margin);
+                if (!farEnough(x, y)) continue;
+                pts.push({x, y, kind: "decoy"});
+            }
+            return pts;
+        }
+
+        function buildTwinkles() {
+            const t = [];
+            for (let i = 0; i < TWINKLE_COUNT; i++) {
+                t.push({
+                    x: rand(0, canvas.width),
+                    y: rand(0, canvas.height),
+                    a: rand(0.06, 0.20),
+                    s: rand(0.6, 1.7),
+                    sp: rand(0.004, 0.02)
+                });
+            }
+            return t;
+        }
+
+        // ===== State
+        let seq = [];
+        let decoys = [];
+        let stars = []; // clickable (seq+decoy)
+        let twinkles = [];
+
+        // idx = number of correct taps already made
+        // 0..SEQ_POINTS-1: expecting seq[idx]
+        // idx==SEQ_POINTS: expecting tap on seq[0] again (close)
+        let idx = 0;
+        let done = false;
+
+        // feedback anim
+        let shakeT = 0;
+        let dimPulseT = 0;
+        let winPulse = 0;
+
+        function seqStar(i) {
+            return stars.find(s => s.kind === "seq" && s.i === i);
+        }
+
+        function reset() {
+            overlay.style.display = "none";
+            document.getElementById("line2").style.display = "none";
+
+            seq = buildSequence();
+            decoys = buildDecoys(seq);
+
+            // build stars list: all look identical by default
+            stars = [
+                ...seq.map(p => ({...p, on: false})),
+                ...decoys.map(p => ({...p, on: false}))
+            ];
+
+            // shuffle display positions
+            for (let i = stars.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [stars[i], stars[j]] = [stars[j], stars[i]];
+            }
+
+            twinkles = buildTwinkles();
+            idx = 0;
+            done = false;
+            shakeT = 0;
+            dimPulseT = 0;
+            winPulse = 0;
+
+            progEl.textContent = "0";
+            hintEl.textContent = "";
+        }
+
+        function progressBack() {
+            if (idx === 0) return;
+            idx = Math.max(0, idx - WRONG_STEP_BACK);
+
+            // turn off seq stars >= idx (keeps 0..idx-1 on)
+            for (const s of stars) {
+                if (s.kind === "seq" && s.i >= idx) s.on = false;
+            }
+            progEl.textContent = String(idx);
+        }
+
+        function onWin() {
+            done = true;
+            winPulse = 1.0;
+
+            overlay.style.display = "grid";
+            const line2 = document.getElementById("line2");
+            line2.style.display = "none";
+            setTimeout(() => {
+                line2.style.display = "block";
+            }, 650);
+        }
+
+        function BG_GRAD() {
+            const g = ctx.createRadialGradient(
+                canvas.width * 0.35, canvas.height * 0.22, 10,
+                canvas.width * 0.35, canvas.height * 0.22, Math.max(canvas.width, canvas.height)
+            );
+            g.addColorStop(0, "#5a1437");
+            g.addColorStop(0.45, "#1a0b1f");
+            g.addColorStop(1, "#05040a");
+            return g;
+        }
+
+        function drawBackground() {
+            ctx.fillStyle = BG_GRAD();
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (const t of twinkles) {
+                t.a += t.sp * (Math.random() > 0.5 ? 1 : -1);
+                t.a = clamp(t.a, 0.04, 0.23);
+                ctx.globalAlpha = t.a;
+                ctx.fillStyle = "white";
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, t.s, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        function drawConnections() {
+            // build list of ON seq stars in order 0..k
+            const onSeq = [];
+            for (let i = 0; i < SEQ_POINTS; i++) {
+                const s = seqStar(i);
+                if (s && s.on) onSeq.push(s);
+                else break;
+            }
+
+            if (onSeq.length >= 2) {
+                ctx.lineWidth = 2.4;
+                ctx.strokeStyle = "rgba(255,190,220,0.55)";
+                ctx.beginPath();
+                ctx.moveTo(onSeq[0].x, onSeq[0].y);
+                for (let k = 1; k < onSeq.length; k++) ctx.lineTo(onSeq[k].x, onSeq[k].y);
+                ctx.stroke();
+            }
+
+            // close line when ready to close or after win
+            const shouldCloseLine = (idx >= SEQ_POINTS) && (onSeq.length === SEQ_POINTS);
+            if (shouldCloseLine && onSeq.length >= 2) {
+                ctx.lineWidth = 2.4;
+                ctx.strokeStyle = "rgba(255,190,220,0.55)";
+                ctx.beginPath();
+                ctx.moveTo(onSeq[onSeq.length - 1].x, onSeq[onSeq.length - 1].y);
+                ctx.lineTo(onSeq[0].x, onSeq[0].y);
+                ctx.stroke();
+            }
+
+            if (done && winPulse > 0) {
+                const p = winPulse;
+                ctx.globalAlpha = 0.35 * p;
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = "rgba(255,120,170,0.85)";
+                if (onSeq.length >= 2) {
+                    ctx.beginPath();
+                    ctx.moveTo(onSeq[0].x, onSeq[0].y);
+                    for (let k = 1; k < onSeq.length; k++) ctx.lineTo(onSeq[k].x, onSeq[k].y);
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function drawStars() {
+            const dimPulse = dimPulseT > 0 ? dimPulseT : 0;
+            const sh = shakeT > 0 ? Math.sin(shakeT * 40) * 2.5 : 0;
+
+            const lastCorrectIndex = Math.min(idx - 1, SEQ_POINTS - 1);
+            const lastCorrect = (idx > 0) ? seqStar(lastCorrectIndex) : null;
+
+            for (const s of stars) {
+                const firstSeq = seqStar(0);
+                const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 600);
+
+                const isOn = (s.kind === "seq" && s.on);
+
+                // subtle pulse for first star (only before starting)
+                if (!done && idx === 0 && s.kind === "seq" && s.i === 0) {
+                    const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 600);
+
+                    ctx.globalAlpha = 0.12 + 0.18 * pulse;
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, STAR_R * 2.2, 0, Math.PI * 2);
+                    ctx.fillStyle = "rgba(255, 190, 220, 0.9)";
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+
+
+                // ALL identical when OFF
+                let alpha = 0.78;
+                let r = STAR_R;
+                let fill = "rgba(255,255,255,0.85)";
+
+                // When ON, reveal softly (still not huge)
+                if (isOn) {
+                    alpha = 0.98;
+                    r = STAR_R * 1.18;
+                    fill = done ? "rgba(255,120,170,0.92)" : "rgba(255,190,220,0.92)";
+                }
+
+                // guided: dim last correct on wrong
+                if (dimPulse > 0 && lastCorrect && s.kind === "seq" && s.i === lastCorrect.i) {
+                    alpha *= (0.45 + 0.55 * (1 - dimPulse));
+                    r *= (0.85 + 0.15 * (1 - dimPulse));
+                }
+
+                ctx.globalAlpha = alpha;
+
+                if (isOn) {
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, r * 2.1, 0, Math.PI * 2);
+                    ctx.fillStyle = done ? "rgba(255,120,170,0.12)" : "rgba(255,190,220,0.10)";
+                    ctx.fill();
+                }
+
+                ctx.beginPath();
+                ctx.arc(s.x + sh, s.y, r, 0, Math.PI * 2);
+                ctx.fillStyle = fill;
+                ctx.fill();
+
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function drawUI() {
+            ctx.strokeStyle = "rgba(255,255,255,0.10)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+
+            ctx.font = "600 13px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+            ctx.fillStyle = "rgba(234,240,255,0.88)";
+            ctx.fillText("Encuentra el patrón", 16, 22);
+
+            ctx.font = "400 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+            ctx.fillStyle = "rgba(203,180,196,0.90)";
+            ctx.fillText(`Progreso: ${idx}/${TOTAL_TAPS}`, 16, 40);
+
+            if (idx === SEQ_POINTS && !done) {
+                ctx.fillText("Cierra: toca la primera estrella otra vez.", 16, 58);
+            }
+        }
+
+        function draw() {
+            drawBackground();
+            drawConnections();
+            drawStars();
+            drawUI();
+
+            if (shakeT > 0) shakeT = Math.max(0, shakeT - 0.03);
+            if (dimPulseT > 0) dimPulseT = Math.max(0, dimPulseT - 0.05);
+            if (winPulse > 0) winPulse = Math.max(0, winPulse - 0.015);
+
+            requestAnimationFrame(draw);
+        }
+
+        function pickStar(x, y) {
+            let best = null;
+            let bestD = Infinity;
+            for (const s of stars) {
+                const d = dist2(x, y, s.x, s.y);
+                if (d < HIT_R * HIT_R && d < bestD) {
+                    best = s;
+                    bestD = d;
+                }
+            }
+            return best;
+        }
+
+        function handleTap(x, y) {
+            if (done) return;
+            const s = pickStar(x, y);
+            if (!s) return;
+
+            const expectingClose = (idx === SEQ_POINTS);
+
+            if (!expectingClose) {
+                if (s.kind === "seq" && s.i === idx) {
+                    s.on = true;
+                    idx++;
+                    progEl.textContent = String(idx);
+                    if (idx === 1) hintEl.textContent = "Bien. Sigue el rastro.";
+                    else if (idx === Math.floor(SEQ_POINTS / 2)) hintEl.textContent = "Ya casi.";
+                    else if (idx > 2 && idx < SEQ_POINTS - 1 && Math.random() < 0.10) hintEl.textContent = "Vas bien.";
+                    return;
+                }
+            } else {
+                // close by tapping first seq star again
+                if (s.kind === "seq" && s.i === 0) {
+                    idx++;
+                    progEl.textContent = String(idx);
+                    onWin();
+                    return;
+                }
+            }
+
+            // wrong tap (guided): step back 1
+            shakeT = 1.0;
+            dimPulseT = 1.0;
+            hintEl.textContent = "Casi. Intenta otra vez.";
+            progressBack();
+        }
+
+        canvas.addEventListener("pointerdown", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            handleTap(x, y);
+        });
+
+        document.getElementById("reset").addEventListener("click", reset);
+        closeBtn.addEventListener("click", () => overlay.style.display = "none");
+
+        reset();
+        requestAnimationFrame(draw);
+    })();
+</script>
+</body>
+</html>
