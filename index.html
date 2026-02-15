@@ -234,7 +234,7 @@
         const SEQ_POINTS = 16;            // unique points
         const TOTAL_TAPS = SEQ_POINTS + 1; // close by tapping first again
         const DECOY_COUNT = 60;
-        const STAR_R = 20;                 // S2
+        const STAR_R = 25;                 // S2
         const HIT_R = 30;
         const WRONG_STEP_BACK = 1;        // P1
         const TWINKLE_COUNT = 100;
@@ -283,29 +283,51 @@
         }
 
         function buildDecoys(seq) {
-            const pts = [];
-            const w = canvas.width, h = canvas.height;
-            const margin = 28;
-            const MIN_STAR_DIST = STAR_R * 2.6; // súbelo a 3.0 si aún se juntan
+  const pts = [];
+  const w = canvas.width, h = canvas.height;
+  const margin = 28;
 
+  // Minimum distance between ANY two stars (decoy-decoy and decoy-seq)
+  let minD = Math.max(STAR_R * 3.6, HIT_R * 1.1); // good starting point
+  let minD2 = minD * minD;
 
-            function farEnough(x, y) {
-                for (const s of seq) {
-                    if (dist2(x, y, s.x, s.y) < (HIT_R * HIT_R * 1.6)) return false;
-                }
-                return true;
-            }
+  function farFromSeq(x, y) {
+    for (const s of seq) {
+      if (dist2(x, y, s.x, s.y) < minD2) return false;
+    }
+    return true;
+  }
 
-            let tries = 0;
-            while (pts.length < DECOY_COUNT && tries < 12000) {
-                tries++;
-                const x = rand(margin, w - margin);
-                const y = rand(margin, h - margin);
-                if (!farEnough(x, y)) continue;
-                pts.push({x, y, kind: "decoy"});
-            }
-            return pts;
-        }
+  function farFromDecoys(x, y) {
+    for (const p of pts) {
+      if (dist2(x, y, p.x, p.y) < minD2) return false;
+    }
+    return true;
+  }
+
+  let tries = 0;
+  const MAX_TRIES = 40000;
+
+  while (pts.length < DECOY_COUNT && tries < MAX_TRIES) {
+    tries++;
+    const x = rand(margin, w - margin);
+    const y = rand(margin, h - margin);
+
+    if (!farFromSeq(x, y)) continue;
+    if (!farFromDecoys(x, y)) continue;
+
+    pts.push({ x, y, kind: "decoy" });
+
+    // Fallback: if it's too crowded, relax spacing gradually
+    if (tries % 2500 === 0 && pts.length < DECOY_COUNT * 0.6) {
+      minD *= 0.92;
+      minD2 = minD * minD;
+    }
+  }
+
+  return pts;
+}
+
 
         function buildTwinkles() {
             const t = [];
